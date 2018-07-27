@@ -16,38 +16,39 @@ class Loader extends Thread {
 
     @Override
     public void run() {
-        HttpURLConnection connection = null;
-        try {
-            connection = (HttpURLConnection) this.url.openConnection();
-            connection.setRequestProperty(
-                    "Range",
-                    String.format(
-                            "bytes=%s-%s",
-                            // offset != 0 if Chunk has been restored from disk
-                            chunk.getStart() + chunk.getOffset(),
-                            chunk.getEnd()
-                    )
-            );
-            int len = chunk.getLength();
-            InputStream is = new BufferedInputStream(connection.getInputStream());
-            byte[] data = new byte[len];
+        long rangeStart = chunk.getStart() + chunk.getOffset();
+        long rangeEnd = chunk.getEnd();
+        // can happen when the chunk is loaded from the storage
+        if (rangeStart < rangeEnd) {
+            HttpURLConnection connection = null;
+            try {
+                connection = (HttpURLConnection) this.url.openConnection();
+                connection.setRequestProperty(
+                        "Range",
+                        // offset != 0 if the chunk has been restored from disk
+                        String.format("bytes=%s-%s", rangeStart, rangeEnd)
+                );
+                int len = chunk.getLength();
+                InputStream is = new BufferedInputStream(connection.getInputStream());
+                byte[] data = new byte[len];
 
-            while (chunk.getOffset() < len) {
-                int offset = chunk.getOffset();
-                int read = is.read(data, offset, len - offset);
-                if (read < 0) {
-                    break;
+                while (chunk.getOffset() < len) {
+                    int offset = chunk.getOffset();
+                    int read = is.read(data, offset, len - offset);
+                    if (read < 0) {
+                        break;
+                    }
+                    synchronized (diskService) {
+                        diskService.write(chunk, data, read);
+                    }
+                    chunk.incrementOffset(read);
                 }
-                synchronized (diskService) {
-                    diskService.write(chunk, data, read);
-                }
-                chunk.incrementOffset(read);
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                connection.disconnect();
             }
-            diskService.unregisterLoader(chunk.getId());
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            connection.disconnect();
         }
+        diskService.unregisterLoader(chunk);
     }
 }
