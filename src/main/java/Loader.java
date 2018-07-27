@@ -21,7 +21,12 @@ class Loader extends Thread {
             connection = (HttpURLConnection) this.url.openConnection();
             connection.setRequestProperty(
                     "Range",
-                    String.format("bytes=%s-%s", chunk.getStart(), chunk.getEnd())
+                    String.format(
+                            "bytes=%s-%s",
+                            // offset != 0 if Chunk has been restored from disk
+                            chunk.getStart() + chunk.getOffset(),
+                            chunk.getEnd()
+                    )
             );
             int len = chunk.getLength();
             InputStream is = new BufferedInputStream(connection.getInputStream());

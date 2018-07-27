@@ -18,7 +18,7 @@ public class Chunk implements Serializable {
     }
 
     public int getLength() {
-        return (int) (end - start);
+        return (int) (end - start - offset);
     }
 
     public int getId() {

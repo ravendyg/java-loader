@@ -1,20 +1,28 @@
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 
 public class DiskService {
     private RandomAccessFile dataFile;
-    private HashSet<Integer> loaders = new HashSet<>();
-    private String userUrl;
+    private HashSet<Integer> loaders;
+    private String fileName;
+    private ObjectOutputStream dout;
 
-    public DiskService(String userUrl) throws FileNotFoundException {
-        this.userUrl = userUrl;
-        String[] urlChunks = userUrl.split("/");
-        String fileName = urlChunks[urlChunks.length - 1];
-        String tempFileName = fileName;// + ".tmp";
-        this.dataFile = new RandomAccessFile(tempFileName, "rw");
+    public DiskService(String userUrl) {
+        try {
+            String[] urlChunks = userUrl.split("/");
+            fileName = urlChunks[urlChunks.length - 1];
+            String tempFileName = fileName + ".tmp";
+            this.dataFile = new RandomAccessFile(tempFileName, "rw");
+            loaders = new HashSet<>();
+            dout = new ObjectOutputStream(
+                    new BufferedOutputStream(
+                            new FileOutputStream(fileName + ".meta")
+                    )
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public ArrayList<Chunk> createChunks() {
@@ -31,6 +39,18 @@ public class DiskService {
         if (loaders.isEmpty()) {
             try {
                 dataFile.close();
+                dout.close();
+
+                File fileMeta = new File(fileName + ".meta");
+                if (fileMeta.exists()) {
+                    fileMeta.delete();
+                }
+                File fileIn = new File(fileName + ".tmp");
+                File fileOut = new File(fileName);
+                if (fileOut.exists()) {
+                    fileOut.delete();
+                }
+                fileIn.renameTo(fileOut);
             } catch (IOException e) {
                 e.printStackTrace();
             }
