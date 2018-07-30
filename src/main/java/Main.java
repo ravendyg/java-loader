@@ -6,7 +6,7 @@ import java.net.URL;
 import java.util.ArrayList;
 
 public class Main {
-    private final static String URL = "http://localhost:4000/users_data/images/2.png";
+    private final static String URL = "http://localhost:4000/users_data/images/1.exe";
     private final static int MAX_CHUNK_NUMBER = 10;
     private final static int MIN_CHUNK_SIZE = 50000;
 

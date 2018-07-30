@@ -7,6 +7,7 @@ class Loader extends Thread {
     private Chunk chunk;
     private URL url;
     private DiskService diskService;
+    public static final int BUFFER_SIZE = 64000;
 
     public Loader(URL url, Chunk chunk, DiskService diskService) {
         this.url = url;
@@ -30,11 +31,11 @@ class Loader extends Thread {
                 );
                 int len = chunk.getLength();
                 InputStream is = new BufferedInputStream(connection.getInputStream());
-                byte[] data = new byte[len];
+                byte[] data = new byte[BUFFER_SIZE];
 
                 while (chunk.getOffset() < len) {
-                    int offset = chunk.getOffset();
-                    int read = is.read(data, offset, len - offset);
+                    int toRead = Math.min(BUFFER_SIZE, len - chunk.getOffset());
+                    int read = is.read(data, 0, toRead);
                     if (read < 0) {
                         break;
                     }

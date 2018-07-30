@@ -59,7 +59,7 @@ public class DiskService {
         try {
             // write data
             dataFile.seek(start + offset);
-            dataFile.write(data, offset, dataLength);
+            dataFile.write(data, 0, dataLength);
             // update meta info
             try (ObjectOutputStream dout = new ObjectOutputStream(
                     new BufferedOutputStream(
