@@ -7,6 +7,10 @@ public class DiskService {
     private HashSet<Integer> loaders;
     private String fileName;
     private ArrayList<Chunk> chunks;
+    private long totalSize = 0;
+    private long loaded = 0;
+    private long reportedPercent = 0;
+    private boolean verbose = false;
 
     public ArrayList<Chunk> getChunks() {
         return chunks;
@@ -25,10 +29,15 @@ public class DiskService {
         }
     }
 
+    public DiskService(String userUrl, boolean verbose) {
+        this(userUrl);
+        this.verbose = verbose;
+    }
+
     public void loadChunks(ArrayList<Chunk> chunks) {
         this.chunks = chunks;
         for (Chunk chunk : chunks) {
-            registerLoader(chunk.getId());
+            registerLoader(chunk);
         }
     }
 
@@ -44,18 +53,29 @@ public class DiskService {
         long start = chunk.getStart();
         long end = chunk.getEnd();
         int offset = chunk.getOffset();
+        loaded += dataLength;
 
-        // logging info, remove later
-        System.out.println(
-                String.format(
-                        "id: %s; from: %s; to: %s; starting: %s; ending: %s",
-                        id,
-                        start,
-                        end,
-                        start + offset,
-                        start + offset + dataLength
-                )
-        );
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "id: %s; from: %s; to: %s; starting: %s; ending: %s",
+                            id,
+                            start,
+                            end,
+                            start + offset,
+                            start + offset + dataLength
+                    )
+            );
+        }
+
+        long percent = 100 * loaded / totalSize;
+        if (percent - reportedPercent >= 5 || percent == 100) {
+            reportedPercent = percent;
+            System.out.println(
+                    String.format("Loaded: %s%%", percent)
+            );
+        }
+
         try {
             // write data
             dataFile.seek(start + offset);
@@ -82,7 +102,7 @@ public class DiskService {
         )) {
             chunks = (ArrayList<Chunk>) din.readObject();
             for(Chunk chunk : chunks) {
-                registerLoader(chunk.getId());
+                registerLoader(chunk);
             }
         } catch (FileNotFoundException e) {
             // that is absolutely OK
@@ -91,8 +111,10 @@ public class DiskService {
         }
     }
 
-    private void registerLoader(int id) {
-        loaders.add(id);
+    private void registerLoader(Chunk chunk) {
+        totalSize += chunk.getLength();
+        loaded += chunk.getOffset();
+        loaders.add(chunk.getId());
     }
 
     private void finish() {
